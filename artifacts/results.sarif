@@ -1,0 +1,293 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Google CodeMender",
+          "organization": "Google Cloud Security & Google DeepMind",
+          "version": "2.4.0-gemini-3.8-flash-cyber",
+          "informationUri": "https://cloud.google.com/security/codemender",
+          "rules": [
+            {
+              "id": "CM-SQLI-001",
+              "name": "SqlInjectionInRadicadosSearch",
+              "shortDescription": {
+                "text": "CWE-89: SQL Injection via unparameterized string interpolation in /api/radicados/search"
+              },
+              "fullDescription": {
+                "text": "User-supplied query parameter 'q' is concatenated directly into a raw SQLite SELECT statement without parameterization, allowing an attacker to bypass the 'confidencial = 0' predicate using `' OR '1'='1 --` and exfiltrate confidential ARL medical claims, fiduciary trust records, and Colombian Cédulas de Ciudadanía."
+              },
+              "help": {
+                "text": "Replace f-string SQL interpolation with parameterized queries using '?' placeholders and enforce strict predicate grouping: WHERE (radicado_id LIKE ? OR asunto LIKE ? OR entidad LIKE ?) AND confidencial = 0."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-89",
+                  "sql-injection",
+                  "codemender-verified",
+                  "zero-false-positive"
+                ],
+                "security-severity": "9.9",
+                "confidence": "100%",
+                "sandbox_verified": true
+              }
+            },
+            {
+              "id": "CM-CMDI-002",
+              "name": "OsCommandInjectionAndPathTraversalInInspectDoc",
+              "shortDescription": {
+                "text": "CWE-78 / CWE-22: OS Command Injection and Path Traversal in /api/radicados/inspect-doc"
+              },
+              "fullDescription": {
+                "text": "The document inspection endpoint passes user-controlled 'filename' directly into subprocess.run(..., shell=True), allowing arbitrary command execution (e.g., 'radicado_001.txt; id; uname -a') and directory traversal ('../../../../etc/passwd') inside the Cloud Run container."
+              },
+              "help": {
+                "text": "Eliminate subprocess.run(..., shell=True). Validate that Path(filename).name == filename, verify resolved path confinement inside /tmp/linktic_docs, and compute SHA-256 and file preview using native Python I/O."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-78",
+                  "external/cwe/cwe-22",
+                  "command-injection",
+                  "path-traversal",
+                  "codemender-verified",
+                  "zero-false-positive"
+                ],
+                "security-severity": "9.8",
+                "confidence": "100%",
+                "sandbox_verified": true
+              }
+            },
+            {
+              "id": "CM-SSRF-003",
+              "name": "ServerSideRequestForgeryToGcpMetadata",
+              "shortDescription": {
+                "text": "CWE-918: Server-Side Request Forgery (SSRF) in /api/webhooks/notify-entidad enabling GCP Metadata Server token theft"
+              },
+              "fullDescription": {
+                "text": "The outbound entity notification webhook accepts arbitrary callback_url values without scheme, domain allowlist, or link-local IP filtering. An attacker can target http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token or metadata.google.internal to steal the Cloud Run Service Account OAuth2 token (Wiz Toxic Combination)."
+              },
+              "help": {
+                "text": "Enforce HTTPS scheme, restrict hostnames to the approved entity allowlist (*.linktic.com, *.gov.co, api.positiva-sim.co), and block loopback, private, and link-local IP ranges (169.254.0.0/16, 127.0.0.0/8, 10.0.0.0/8)."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "tags": [
+                  "security",
+                  "external/cwe/cwe-918",
+                  "ssrf",
+                  "gcp-metadata",
+                  "wiz-toxic-combination",
+                  "codemender-verified",
+                  "zero-false-positive"
+                ],
+                "security-severity": "9.8",
+                "static-severity": "7.5",
+                "confidence": "100%",
+                "sandbox_verified": true
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "CommandLine": "cm find --context CONTEXT.md --verify --fix --sarif artifacts/results.sarif",
+          "workingDirectory": {
+            "uri": "file:///usr/local/google/home/jmaciasc/proyectos/linktic-devsecops-demo"
+          },
+          "endTimeUtc": "2026-10-17T20:10:54Z"
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "CM-SQLI-001",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "[VERIFIED EXPLOITABLE -> FIXED & VERIFIED] CWE-89 SQL Injection in search_radicados(). Sandbox PoC `' OR '1'='1 --` leaked 3 confidential ARL/fiduciary records containing Colombian Cédulas de Ciudadanía. Remediated via parameterized SQLite query."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "backend/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 145,
+                  "endLine": 168
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": "Parameterize SQLite query with '?' placeholders and enforce parenthesized predicate with confidencial = 0."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "backend/app.py"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "startLine": 152,
+                        "endLine": 155
+                      },
+                      "insertedContent": {
+                        "text": "sql = \"SELECT * FROM radicados WHERE (radicado_id LIKE ? OR asunto LIKE ? OR entidad LIKE ?) AND confidencial = 0\"\nlike_param = f\"%{q}%\"\nrows = cursor.execute(sql, (like_param, like_param, like_param)).fetchall()"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "finding_id": "CM-SQLI-001",
+            "cwe": "CWE-89",
+            "confidence": "100%",
+            "sandbox_poc": "curl -s \"http://localhost:8080/api/radicados/search?mode=v1-vulnerable&q=%27%20OR%20%271%27%3D%271%20--\"",
+            "poc_pre_patch_result": "EXPLOITED (8/8 records returned, including 3 confidential records with citizen CC numbers)",
+            "poc_post_patch_result": "BLOCKED (0 confidential records leaked; HTTP 400 / sanitized parameterized query)",
+            "status": "FIXED_AND_VERIFIED",
+            "wiz_correlation_id": "UVM-LINKTIC-SQLI-001",
+            "recalculated_severity": "CRITICAL (9.9)"
+          }
+        },
+        {
+          "ruleId": "CM-CMDI-002",
+          "ruleIndex": 1,
+          "level": "error",
+          "message": {
+            "text": "[VERIFIED EXPLOITABLE -> FIXED & VERIFIED] CWE-78 OS Command Injection & CWE-22 Path Traversal in inspect_document(). Sandbox PoC `radicado_001.txt; id; uname -a` executed arbitrary shell commands inside the container. Remediated by removing shell=True, enforcing Path.resolve() sandbox confinement, and using native Python SHA-256."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "backend/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 185,
+                  "endLine": 218
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": "Replace subprocess.run(..., shell=True) with strict Path confinement inside /tmp/linktic_docs and pure Python file reading + hashlib.sha256."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "backend/app.py"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "startLine": 192,
+                        "endLine": 197
+                      },
+                      "insertedContent": {
+                        "text": "safe_name = Path(filename).name\nif safe_name != filename or \"..\" in filename:\n    raise HTTPException(status_code=400, detail=\"Invalid filename blocked by CodeMender guardrail\")\ntarget = (DOCS_DIR / safe_name).resolve()\ncontent = target.read_text(encoding=\"utf-8\")\nsha256_hash = hashlib.sha256(content.encode(\"utf-8\")).hexdigest()"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "finding_id": "CM-CMDI-002",
+            "cwe": "CWE-78 / CWE-22",
+            "confidence": "100%",
+            "sandbox_poc": "curl -s -X POST http://localhost:8080/api/radicados/inspect-doc?mode=v1-vulnerable -H 'Content-Type: application/json' -d '{\"filename\": \"radicado_001.txt; id; uname -a\"}'",
+            "poc_pre_patch_result": "EXPLOITED (uid=0/appuser and Linux kernel output returned in HTTP response)",
+            "poc_post_patch_result": "BLOCKED (HTTP 400 Bad Request — Shell metacharacters and path traversal rejected)",
+            "status": "FIXED_AND_VERIFIED",
+            "wiz_correlation_id": "UVM-LINKTIC-CMDI-002",
+            "recalculated_severity": "CRITICAL (9.8)"
+          }
+        },
+        {
+          "ruleId": "CM-SSRF-003",
+          "ruleIndex": 2,
+          "level": "error",
+          "message": {
+            "text": "[VERIFIED EXPLOITABLE -> FIXED & VERIFIED] CWE-918 SSRF in notify_entidad_webhook(). Sandbox PoC targeting http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token exfiltrated the Cloud Run Service Account token (linktic-sgda-runner@jmaciasc.iam.gserviceaccount.com). Elevated from HIGH (7.5) to CRITICAL (9.8) by Wiz Security Graph Toxic Combination. Remediated via HTTPS allowlist and private/link-local IP blocking."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "backend/app.py",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 230,
+                  "endLine": 270
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": "Enforce HTTPS scheme, domain allowlist (*.linktic.com, *.gov.co, api.positiva-sim.co), and reject link-local/private IP ranges (169.254.0.0/16)."
+              },
+              "artifactChanges": [
+                {
+                  "artifactLocation": {
+                    "uri": "backend/app.py"
+                  },
+                  "replacements": [
+                    {
+                      "deletedRegion": {
+                        "startLine": 240,
+                        "endLine": 248
+                      },
+                      "insertedContent": {
+                        "text": "parsed = urlparse(callback_url)\nif parsed.scheme != \"https\" or not is_allowed_webhook_host(parsed.hostname):\n    raise HTTPException(status_code=403, detail=\"SSRF blocked: URL outside approved HTTPS entity allowlist\")"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "finding_id": "CM-SSRF-003",
+            "cwe": "CWE-918",
+            "confidence": "100%",
+            "sandbox_poc": "curl -s -X POST http://localhost:8080/api/webhooks/notify-entidad?mode=v1-vulnerable -H 'Content-Type: application/json' -d '{\"radicado_id\": \"RAD-2026-00101\", \"callback_url\": \"http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token\"}'",
+            "poc_pre_patch_result": "EXPLOITED (GCP Service Account OAuth2 access_token for linktic-sgda-runner@jmaciasc.iam.gserviceaccount.com leaked)",
+            "poc_post_patch_result": "BLOCKED (HTTP 403 Forbidden — Metadata server 169.254.169.254 and non-HTTPS schemes rejected)",
+            "status": "FIXED_AND_VERIFIED",
+            "wiz_correlation_id": "UVM-LINKTIC-SSRF-003",
+            "recalculated_severity": "CRITICAL (9.8)"
+          }
+        }
+      ]
+    }
+  ]
+}

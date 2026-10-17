@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Pytest & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local SQLite databases & environment variables
+*.db
+*.sqlite3
+.env
+.env.*
+
+# OS & Editor files
+.DS_Store
+*.swp
+*~
+.vscode/
+.idea/
+
+# Terraform state & cache
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform.lock.hcl

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Google CodeMender — Reporte Ejecutivo de Verificación y Parcheo Autónomo (Linktic SGDA)</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #111827;
+      --surface-2: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --blue: #38bdf8;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem;
+    }
+    .container { max-width: 1240px; margin: 0 auto; }
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 2rem;
+      margin-bottom: 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .badge-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-blue { background: rgba(56, 189, 248, 0.15); color: var(--blue); border: 1px solid rgba(56, 189, 248, 0.35); }
+    .badge-green { background: rgba(34, 197, 94, 0.15); color: var(--green); border: 1px solid rgba(34, 197, 94, 0.35); }
+    .badge-red { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.35); }
+    .badge-purple { background: rgba(168, 85, 247, 0.15); color: var(--purple); border: 1px solid rgba(168, 85, 247, 0.35); }
+    h1 { font-size: 1.65rem; font-weight: 800; margin-bottom: 0.4rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .kpi-label { font-size: 0.78rem; text-transform: uppercase; color: var(--muted); letter-spacing: 0.05em; }
+    .kpi-value { font-size: 1.75rem; font-weight: 800; margin-top: 0.3rem; }
+    .kpi-sub { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    .finding-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.75rem;
+      margin-bottom: 1.75rem;
+    }
+    .finding-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .finding-title { font-size: 1.2rem; font-weight: 700; }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 0.75rem;
+      background: var(--surface-2);
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1.25rem;
+      font-size: 0.85rem;
+    }
+    .meta-item strong { color: var(--muted); display: block; font-size: 0.74rem; text-transform: uppercase; }
+    h3 { font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--blue); margin: 1.1rem 0 0.5rem; }
+    pre {
+      background: #050811;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+    }
+    .diff-del { color: #f87171; background: rgba(239, 68, 68, 0.12); display: block; padding: 0 0.4rem; }
+    .diff-add { color: #4ade80; background: rgba(34, 197, 94, 0.12); display: block; padding: 0 0.4rem; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(34, 197, 94, 0.18);
+      color: #4ade80;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.82rem;
+    }
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="badge-row">
+          <span class="badge badge-blue">Google CodeMender v2.4.0</span>
+          <span class="badge badge-purple">Gemini 3.8 Flash Cyber + Gemini 3.1 Pro</span>
+          <span class="badge badge-green">Wiz Code-to-Cloud Correlated (go/wiz-adatest)</span>
+        </div>
+        <h1>Reporte Ejecutivo de Verificación con Exploit PoC y Parcheo Autónomo</h1>
+        <p class="subtitle">
+          Objetivo: <strong>Linktic SGDA &amp; Claims AI Portal</strong> &bull; Proyecto GCP Argolis: <code>jmaciasc (599979914124)</code> &bull; Contexto Semántico: <code>CONTEXT.md</code>
+        </p>
+      </div>
+      <div>
+        <span class="status-pill">✅ 3/3 FIXED &amp; VERIFIED (0% FALSOS POSITIVOS)</span>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Hallazgos Verificados en Sandbox</div>
+        <div class="kpi-value" style="color: var(--red);">3 Críticos</div>
+        <div class="kpi-sub">CWE-89 (SQLi), CWE-78/22 (CmdInj), CWE-918 (SSRF)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Tasa de Falsos Positivos</div>
+        <div class="kpi-value" style="color: var(--green);">0.0%</div>
+        <div class="kpi-sub">100% comprobados mediante Exploit PoC real en sandbox</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Correlación Wiz Security Graph</div>
+        <div class="kpi-value" style="color: var(--purple);">Toxic Combo</div>
+        <div class="kpi-sub">CM-SSRF-003 elevado de HIGH (7.5) a CRITICAL (9.8)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Verificación Post-Parche</div>
+        <div class="kpi-value" style="color: var(--blue);">100% Bloqueo</div>
+        <div class="kpi-sub">Exploits bloqueados en v2-secure + Pytest 100% PASS</div>
+      </div>
+    </div>
+
+    <!-- Finding 1: CM-SQLI-001 -->
+    <div class="finding-card" id="CM-SQLI-001">
+      <div class="finding-header">
+        <div>
+          <div class="badge-row">
+            <span class="badge badge-red">CM-SQLI-001 &bull; CRITICAL (CVSS 9.9)</span>
+            <span class="badge badge-blue">CWE-89: SQL Injection</span>
+            <span class="badge badge-green">Confianza: 100% (Sandbox PoC Verified)</span>
+          </div>
+          <div class="finding-title">Inyección SQL en Buscador de Radicados permite Exfiltración de Reclamos Médicos ARL y Fideicomisos Confidenciales</div>
+        </div>
+        <span class="status-pill">FIXED &amp; VERIFIED</span>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-item"><strong>Archivo / Endpoint</strong><code>backend/app.py</code> &rarr; <code>GET /api/radicados/search</code></div>
+        <div class="meta-item"><strong>Invariante Violado</strong><code>CONTEXT.md #Invariante-1 (Aislamiento confidencial=0)</code></div>
+        <div class="meta-item"><strong>Impacto Negocio Linktic</strong>Exfiltración de Cédulas Colombianas (Ley 1581) y encargos fiduciarios reservados</div>
+        <div class="meta-item"><strong>Correlación Wiz UVM</strong><code>UVM-LINKTIC-SQLI-001</code> (Public Endpoint &rarr; Citizen DB)</div>
+      </div>
+
+      <h3>1. Prueba de Explotación en Sandbox Aislado (`cm verify` — Pre-Patch `v1-vulnerable`)</h3>
+      <pre>$ curl -s "http://127.0.0.1:8080/api/radicados/search?mode=v1-vulnerable&amp;q=%27%20OR%20%271%27%3D%271%20--" | jq .
+{
+  "mode": "v1-vulnerable",
+  "sql_executed": "SELECT * FROM radicados WHERE radicado_id LIKE '%' OR '1'='1 --%' OR asunto LIKE '%' OR '1'='1 --%' AND confidencial = 0",
+  "total_results": 8,
+  "confidential_leaked_count": 3,
+  "leaked_records_sample": [
+    {
+      "radicado_id": "RAD-2026-00991-CONF",
+      "entidad": "Positiva ARL / Ministerio de Salud",
+      "ciudadano_cc": "CC-1032456789",
+      "asunto": "[CONFIDENCIAL] Junta Médica Calificación Invalidez e Historia Clínica Oncológica",
+      "monto_cop": 485000000,
+      "confidencial": 1
+    }
+  ]
+}</pre>
+
+      <h3>2. Parche Autónomo Generado por CodeMender (`cm fix` — `git diff backend/app.py`)</h3>
+      <pre>--- a/backend/app.py (v1-vulnerable)
++++ b/backend/app.py (v2-secure)
+@@ -150,5 +150,8 @@ def search_radicados(q: str, mode: str):
+<span class="diff-del">-    raw_sql = f"SELECT * FROM radicados WHERE radicado_id LIKE '%{q}%' OR asunto LIKE '%{q}%' AND confidencial = 0"</span>
+<span class="diff-del">-    rows = cursor.execute(raw_sql).fetchall()</span>
+<span class="diff-add">+    if detect_sqli_pattern(q):</span>
+<span class="diff-add">+        raise HTTPException(status_code=400, detail="SQLi blocked by CodeMender parameterized guardrail (CM-SQLI-001)")</span>
+<span class="diff-add">+    safe_sql = "SELECT * FROM radicados WHERE (radicado_id LIKE ? OR asunto LIKE ? OR entidad LIKE ?) AND confidencial = 0"</span>
+<span class="diff-add">+    like_val = f"%{q}%"</span>
+<span class="diff-add">+    rows = cursor.execute(safe_sql, (like_val, like_val, like_val)).fetchall()</span></pre>
+
+      <h3>3. Verificación Post-Parche (`v2-secure`)</h3>
+      <pre>[CodeMender Sandbox Re-Test] Payload `' OR '1'='1 --` contra `v2-secure` &rarr; HTTP 400 Bad Request (0 registros confidenciales expuestos). Suite pytest: PASS.</pre>
+    </div>
+
+    <!-- Finding 2: CM-CMDI-002 -->
+    <div class="finding-card" id="CM-CMDI-002">
+      <div class="finding-header">
+        <div>
+          <div class="badge-row">
+            <span class="badge badge-red">CM-CMDI-002 &bull; CRITICAL (CVSS 9.8)</span>
+            <span class="badge badge-blue">CWE-78: OS Command Injection &amp; CWE-22: Path Traversal</span>
+            <span class="badge badge-green">Confianza: 100% (Sandbox Execution Trace)</span>
+          </div>
+          <div class="finding-title">Ejecución Remota de Comandos (RCE) y Path Traversal en Inspector Documental de Anexos SGDA</div>
+        </div>
+        <span class="status-pill">FIXED &amp; VERIFIED</span>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-item"><strong>Archivo / Endpoint</strong><code>backend/app.py</code> &rarr; <code>POST /api/radicados/inspect-doc</code></div>
+        <div class="meta-item"><strong>Invariante Violado</strong><code>CONTEXT.md #Invariante-2 (Prohibición de shell=True y confinamiento /tmp/linktic_docs)</code></div>
+        <div class="meta-item"><strong>Impacto Negocio Linktic</strong>Ejecución arbitraria de comandos en contenedor Cloud Run y lectura de archivos del sistema</div>
+        <div class="meta-item"><strong>Correlación Wiz UVM</strong><code>UVM-LINKTIC-CMDI-002</code> + Hardening <code>USER appuser (10001)</code> en Dockerfile</div>
+      </div>
+
+      <h3>1. Traza de Ejecución en Sandbox (`cm verify` — Pre-Patch `v1-vulnerable`)</h3>
+      <pre>$ curl -s -X POST "http://127.0.0.1:8080/api/radicados/inspect-doc?mode=v1-vulnerable" \
+    -H "Content-Type: application/json" \
+    -d '{"filename": "radicado_001.txt; id; uname -a"}' | jq .
+{
+  "mode": "v1-vulnerable",
+  "command_executed": "wc -c /tmp/linktic_docs/radicado_001.txt; id; uname -a &amp;&amp; head -n 5 /tmp/linktic_docs/radicado_001.txt; id; uname -a",
+  "raw_output": "342 /tmp/linktic_docs/radicado_001.txt\nuid=10001(appuser) gid=10001(appuser) groups=10001(appuser)\nLinux linktic-sgda-sandbox 6.6.32-cloudrun #1 SMP x86_64 GNU/Linux",
+  "vulnerability_triggered": "CM-CMDI-002 (CWE-78 OS Command Injection)"
+}</pre>
+
+      <h3>2. Parche Autónomo Generado por CodeMender (`cm fix` — `git diff backend/app.py`)</h3>
+      <pre>--- a/backend/app.py (v1-vulnerable)
++++ b/backend/app.py (v2-secure)
+@@ -190,6 +190,11 @@ def inspect_doc(payload: InspectDocRequest, mode: str):
+<span class="diff-del">-    cmd = f"wc -c /tmp/linktic_docs/{payload.filename} &amp;&amp; head -n 5 /tmp/linktic_docs/{payload.filename}"</span>
+<span class="diff-del">-    proc = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=3)</span>
+<span class="diff-add">+    if Path(payload.filename).name != payload.filename or any(c in payload.filename for c in [";", "|", "&amp;", "$", "`", "..", "/"]):</span>
+<span class="diff-add">+        raise HTTPException(status_code=400, detail="Command Injection / Path Traversal blocked by CodeMender (CM-CMDI-002)")</span>
+<span class="diff-add">+    resolved = (DOCS_DIR / payload.filename).resolve()</span>
+<span class="diff-add">+    if DOCS_DIR.resolve() not in resolved.parents:</span>
+<span class="diff-add">+        raise HTTPException(status_code=400, detail="Sandbox escape blocked")</span>
+<span class="diff-add">+    text_data = resolved.read_text(encoding="utf-8")</span></pre>
+
+      <h3>3. Verificación Post-Parche (`v2-secure`)</h3>
+      <pre>[CodeMender Sandbox Re-Test] Payloads `radicado_001.txt; id; uname -a` y `../../../../etc/passwd` &rarr; HTTP 400 Bad Request. Inspección legítima `radicado_001.txt` &rarr; HTTP 200 OK con hash SHA-256 nativo.</pre>
+    </div>
+
+    <!-- Finding 3: CM-SSRF-003 -->
+    <div class="finding-card" id="CM-SSRF-003">
+      <div class="finding-header">
+        <div>
+          <div class="badge-row">
+            <span class="badge badge-red">CM-SSRF-003 &bull; HIGH (7.5) &rarr; CRITICAL (9.8 WIZ TOXIC COMBINATION)</span>
+            <span class="badge badge-blue">CWE-918: Server-Side Request Forgery (SSRF)</span>
+            <span class="badge badge-purple">Wiz Security Graph Elevated</span>
+          </div>
+          <div class="finding-title">SSRF en Webhook de Notificación a Entidades permite Robo de Token OAuth2 del Metadata Server en Cloud Run</div>
+        </div>
+        <span class="status-pill">FIXED &amp; VERIFIED</span>
+      </div>
+
+      <div class="meta-grid">
+        <div class="meta-item"><strong>Archivo / Endpoint</strong><code>backend/app.py</code> &rarr; <code>POST /api/webhooks/notify-entidad</code></div>
+        <div class="meta-item"><strong>Invariante Violado</strong><code>CONTEXT.md #Invariante-3 (Allowlist HTTPS y bloqueo de 169.254.169.254)</code></div>
+        <div class="meta-item"><strong>Ruta de Ataque Wiz (`go/wiz-adatest`)</strong>Internet &rarr; Cloud Run (<code>linktic-sgda-portal</code>) &rarr; SSRF <code>169.254.169.254</code> &rarr; SA Token Theft</div>
+        <div class="meta-item"><strong>Service Account Protegida</strong><code>linktic-sgda-runner@jmaciasc.iam.gserviceaccount.com</code></div>
+      </div>
+
+      <h3>1. Prueba de Explotación GCP Metadata Server (`cm verify` — Pre-Patch `v1-vulnerable`)</h3>
+      <pre>$ curl -s -X POST "http://127.0.0.1:8080/api/webhooks/notify-entidad?mode=v1-vulnerable" \
+    -H "Content-Type: application/json" \
+    -d '{"radicado_id": "RAD-2026-00101", "callback_url": "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token"}' | jq .
+{
+  "mode": "v1-vulnerable",
+  "ssrf_exploited": true,
+  "target_reached": "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token",
+  "leaked_gcp_metadata": {
+    "project_id": "jmaciasc",
+    "project_number": "599979914124",
+    "service_account": "linktic-sgda-runner@jmaciasc.iam.gserviceaccount.com",
+    "access_token": "ya29.c.b0AXv0zTP_SYNTHETIC_CLOUD_RUN_SA_TOKEN_LEAKED_VIA_SSRF...",
+    "token_type": "Bearer"
+  },
+  "wiz_attack_path": "CRITICAL TOXIC COMBINATION (Public Cloud Run + SSRF + SA Token)"
+}</pre>
+
+      <h3>2. Parche Autónomo Generado por CodeMender (`cm fix` — `git diff backend/app.py`)</h3>
+      <pre>--- a/backend/app.py (v1-vulnerable)
++++ b/backend/app.py (v2-secure)
+@@ -240,5 +240,10 @@ def notify_entidad(payload: WebhookNotifyRequest, mode: str):
+<span class="diff-del">-    # v1-vulnerable: No validation on callback_url scheme, host, or link-local metadata IP</span>
+<span class="diff-del">-    return dispatch_unvalidated_webhook(payload.radicado_id, payload.callback_url)</span>
+<span class="diff-add">+    parsed = urlparse(payload.callback_url)</span>
+<span class="diff-add">+    if parsed.scheme != "https":</span>
+<span class="diff-add">+        raise HTTPException(status_code=403, detail="SSRF blocked: HTTPS scheme required (CM-SSRF-003)")</span>
+<span class="diff-add">+    if is_private_or_metadata_host(parsed.hostname) or not matches_entity_allowlist(parsed.hostname):</span>
+<span class="diff-add">+        raise HTTPException(status_code=403, detail="SSRF blocked: Metadata server / non-allowlisted domain rejected (CM-SSRF-003)")</span></pre>
+
+      <h3>3. Verificación Post-Parche (`v2-secure`)</h3>
+      <pre>[CodeMender Sandbox Re-Test] Petición a `http://169.254.169.254/...` y `http://metadata.google.internal/...` &rarr; HTTP 403 Forbidden. Petición legítima a `https://api.positiva-sim.co/webhooks/radicados` &rarr; HTTP 200 OK.</pre>
+    </div>
+
+    <div class="footer">
+      Generado por <strong>Google CodeMender CLI (`cm report`)</strong> + <strong>Antigravity Skill (`go/cm-wiz-skill`)</strong> para <strong>Linktic</strong> &bull; Proyecto Argolis: <code>jmaciasc (599979914124)</code>
+    </div>
+  </div>
+</body>
+</html>

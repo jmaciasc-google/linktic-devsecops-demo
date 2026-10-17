@@ -1,0 +1,64 @@
+# ============================================================================
+# ⚠️ ARCHIVO DE EJEMPLO VULNERABLE (PRE-REMEDIACIÓN) — NO USAR EN PRODUCCIÓN
+# Detectado y bloqueado por: `wizcli iac scan` (go/wiz-adatest)
+# Propósito en la Demo Linktic: Mostrar cómo Wiz CLI detecta llaves quemadas
+# (incidente tipo Positiva SGDA), permisos excesivos IAM y falta de WAF.
+# ============================================================================
+
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "google" {
+  project = "jmaciasc"
+  region  = "us-central1"
+}
+
+# ❌ HALLAZGO WIZ-IAC-001 (CRITICAL): Llave GEMINI_API_KEY quemada en texto plano
+# ❌ HALLAZGO WIZ-IAC-002 (HIGH): Uso de Default Compute SA sin mínimo privilegio
+# ❌ HALLAZGO WIZ-IAC-003 (MEDIUM): Servicio expuesto sin política Cloud Armor WAF
+resource "google_cloud_run_v2_service" "linktic_sgda_vulnerable" {
+  name     = "linktic-sgda-portal-vulnerable"
+  location = "us-central1"
+  ingress  = "INGRESS_TRAFFIC_ALL"
+
+  template {
+    # ❌ Vulnerable: Usa la Default Compute Service Account (599979914124-compute@developer.gserviceaccount.com)
+    service_account = "599979914124-compute@developer.gserviceaccount.com"
+
+    containers {
+      image = "us-central1-docker.pkg.dev/jmaciasc/linktic-devsecops/linktic-sgda-portal:v1-vulnerable"
+
+      # ❌ Vulnerable (WIZ-IAC-001): Credencial de IA quemada en variable de entorno (Patrón Positiva SGDA)
+      env {
+        name  = "GEMINI_API_KEY"
+        value = "AIzaSyD-SYNTHETIC-LEAKED-KEY-DO-NOT-USE-IN-PROD-0001"
+      }
+
+      env {
+        name  = "DEFAULT_SECURITY_MODE"
+        value = "v1-vulnerable"
+      }
+
+      env {
+        name  = "RUN_AS_USER_UID"
+        value = "0" # ❌ Ejecución como root (UID 0)
+      }
+    }
+  }
+}
+
+# ❌ HALLAZGO WIZ-IAC-002 (HIGH): Rol roles/editor otorgado a la cuenta por defecto
+# En combinación con CM-SSRF-003 (CWE-918 a 169.254.169.254), crea una Toxic Combination
+# que permite tomar control de recursos del proyecto jmaciasc.
+resource "google_project_iam_member" "vulnerable_editor_binding" {
+  project = "jmaciasc"
+  role    = "roles/editor"
+  member  = "serviceAccount:599979914124-compute@developer.gserviceaccount.com"
+}

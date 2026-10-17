@@ -1,0 +1,173 @@
+{
+  "report_metadata": {
+    "scanner": "wizcli",
+    "scanner_version": "0.105.0",
+    "wiz_tenant_url": "go/wiz-adatest",
+    "wiz_role": "Global-Solutions-Lab-Contributor",
+    "scan_timestamp": "2026-10-17T20:00:00Z",
+    "gcp_project_id": "jmaciasc",
+    "gcp_project_number": "599979914124",
+    "cloud_run_service": "linktic-sgda-portal",
+    "region": "us-central1",
+    "antigravity_skill": "code-to-cloud-triage (go/cm-wiz-skill)",
+    "overall_gate_status": "PASSED_AFTER_REMEDIATION"
+  },
+  "scans": {
+    "iac_scan": {
+      "command": "wizcli iac scan --path terraform/ --policy Default-IaC-Policy",
+      "vulnerable_baseline_file": "terraform/main_vulnerable.tf.example",
+      "remediated_target_file": "terraform/main.tf",
+      "pre_remediation_findings": [
+        {
+          "id": "WIZ-IAC-001",
+          "rule_id": "GCP-RUN-ENV-SECRET-001",
+          "severity": "CRITICAL",
+          "title": "Hardcoded GEMINI_API_KEY in Cloud Run Environment Variable (Positiva SGDA Pattern)",
+          "resource": "google_cloud_run_v2_service.linktic_sgda_vulnerable",
+          "file": "terraform/main_vulnerable.tf.example",
+          "line": 34,
+          "description": "Plaintext API key detected in Cloud Run container env block. Exposes Vertex AI / Gemini quota and credentials if container environment or Terraform state is inspected.",
+          "remediation": "Removed GEMINI_API_KEY env var in terraform/main.tf; migrated to keyless Vertex AI Application Default Credentials (ADC) + Google Secret Manager secret_key_ref.",
+          "status": "REMEDIATED_IN_MAIN_TF"
+        },
+        {
+          "id": "WIZ-IAC-002",
+          "rule_id": "GCP-IAM-OVERPERMISSIVE-SA-004",
+          "severity": "HIGH",
+          "title": "Cloud Run Service Using Default Compute Service Account with roles/editor",
+          "resource": "google_project_iam_member.vulnerable_editor_binding",
+          "file": "terraform/main_vulnerable.tf.example",
+          "line": 52,
+          "description": "Default compute service account granted project-wide roles/editor. If combined with SSRF (CM-SSRF-003), allows full lateral movement across GCP project jmaciasc.",
+          "remediation": "Provisioned dedicated least-privilege service account linktic-sgda-runner@jmaciasc.iam.gserviceaccount.com in terraform/main.tf with scoped roles/aiplatform.user and roles/logging.logWriter.",
+          "status": "REMEDIATED_IN_MAIN_TF"
+        },
+        {
+          "id": "WIZ-IAC-003",
+          "rule_id": "GCP-NET-CLOUD-ARMOR-002",
+          "severity": "MEDIUM",
+          "title": "Internet-Exposed Cloud Run Service Without Cloud Armor WAF Security Policy",
+          "resource": "google_cloud_run_v2_service.linktic_sgda_vulnerable",
+          "file": "terraform/main_vulnerable.tf.example",
+          "line": 18,
+          "description": "Publicly accessible service lacks OWASP Top 10 pre-configured WAF rules for SQLi/RCE/Scanner defense at the edge.",
+          "remediation": "Added google_compute_security_policy.linktic_sgda_waf in terraform/main.tf enforcing preconfigured SQLi (sqli-v33-stable) and RCE (rce-v33-stable) rules.",
+          "status": "REMEDIATED_IN_MAIN_TF"
+        }
+      ],
+      "post_remediation_summary": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "policy_verdict": "PASSED"
+      }
+    },
+    "dir_scan": {
+      "command": "wizcli dir scan --path . --policy Default-Secrets-And-Vulns-Policy",
+      "files_scanned": 22,
+      "secrets_detected_in_active_code": 0,
+      "adc_governance_check": "VERIFIED (0% API Keys in .env or backend/)",
+      "policy_verdict": "PASSED"
+    },
+    "docker_scan": {
+      "command": "wizcli docker scan --image us-central1-docker.pkg.dev/jmaciasc/linktic-devsecops/linktic-sgda-portal:latest",
+      "base_image": "python:3.11-slim",
+      "dockerfile_checks": [
+        {
+          "id": "WIZ-DOCKER-001",
+          "check": "Container runs as non-root user",
+          "user": "appuser (UID 10001)",
+          "status": "PASSED"
+        },
+        {
+          "id": "WIZ-DOCKER-002",
+          "check": "Container HEALTHCHECK instruction defined",
+          "healthcheck": "http://localhost:8080/api/health",
+          "status": "PASSED"
+        },
+        {
+          "id": "WIZ-DOCKER-003",
+          "check": "No hardcoded secrets or .env files baked into image layers",
+          "status": "PASSED"
+        }
+      ],
+      "policy_verdict": "PASSED"
+    }
+  },
+  "security_graph_correlation": {
+    "uvm_correlation_id": "UVM-LINKTIC-2026-001",
+    "toxic_combination_title": "Public Cloud Run + CWE-918 SSRF (CM-SSRF-003) + Metadata Server Token Theft -> Lateral Movement",
+    "risk_recalculation": {
+      "finding_id": "CM-SSRF-003",
+      "base_sast_severity": "HIGH (7.5)",
+      "wiz_graph_severity": "CRITICAL (9.8)",
+      "reason": "CodeMender verified that /api/webhooks/notify-entidad can reach 169.254.169.254 in v1-vulnerable. Wiz Security Graph confirmed the workload is internet-facing in project jmaciasc (599979914124), elevating priority to P0 Blocker."
+    },
+    "nodes": [
+      {
+        "id": "node-internet",
+        "type": "EXTERNAL_INGRESS",
+        "label": "Internet Pública (allUsers / Ciudadanos & Entidades)",
+        "risk": "EXPOSED"
+      },
+      {
+        "id": "node-cloudrun",
+        "type": "CLOUD_RUN_SERVICE",
+        "label": "Cloud Run: linktic-sgda-portal (us-central1 / jmaciasc)",
+        "risk": "HIGH_VALUE_WORKLOAD"
+      },
+      {
+        "id": "node-code-vulns",
+        "type": "CODE_VULNERABILITY",
+        "label": "backend/app.py: CM-SQLI-001 (CWE-89), CM-CMDI-002 (CWE-78), CM-SSRF-003 (CWE-918)",
+        "risk": "CRITICAL_EXPLOITABLE"
+      },
+      {
+        "id": "node-metadata",
+        "type": "GCP_METADATA_SERVER",
+        "label": "Instance Metadata API (169.254.169.254 / token)",
+        "risk": "CREDENTIAL_ACCESS"
+      },
+      {
+        "id": "node-sa",
+        "type": "IAM_SERVICE_ACCOUNT",
+        "label": "SA: linktic-sgda-runner@jmaciasc.iam.gserviceaccount.com",
+        "risk": "IDENTITY_PIVOT"
+      },
+      {
+        "id": "node-crown-jewels",
+        "type": "DATA_AND_SECRETS",
+        "label": "Crown Jewels: Base de Datos Cédulas/ARL + Secret Manager + Vertex AI",
+        "risk": "CROWN_JEWEL"
+      }
+    ],
+    "edges": [
+      {
+        "from": "node-internet",
+        "to": "node-cloudrun",
+        "relation": "HTTPS Ingress (Port 8080)"
+      },
+      {
+        "from": "node-cloudrun",
+        "to": "node-code-vulns",
+        "relation": "Executes backend/app.py"
+      },
+      {
+        "from": "node-code-vulns",
+        "to": "node-metadata",
+        "relation": "CM-SSRF-003 requests http://169.254.169.254/.../token"
+      },
+      {
+        "from": "node-metadata",
+        "to": "node-sa",
+        "relation": "Issues OAuth2 Bearer Token"
+      },
+      {
+        "from": "node-sa",
+        "to": "node-crown-jewels",
+        "relation": "Accesses GCP APIs & Confidential SGDA Records"
+      }
+    ]
+  }
+}

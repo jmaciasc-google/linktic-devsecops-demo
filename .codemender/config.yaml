@@ -1,0 +1,54 @@
+# .codemender/config.yaml — Google CodeMender CLI Configuration
+# Project: Linktic SGDA & Claims AI Portal (End-to-End Agentic DevSecOps Demo)
+
+version: "1.0"
+team_id: "linktic-security-demo"
+
+vertex_ai:
+  endpoint: "https://aiplatform.googleapis.com"
+  project_id: "jmaciasc"
+  project_number: "599979914124"
+  fallback_project_id: "codemender-internal-demo"
+  fallback_project_number: "844324808277"
+  location: "us-central1"
+  auth_mode: "adc"
+  models:
+    scanner: "gemini-3.8-flash-cyber"
+    verifier: "gemini-3.8-flash-cyber"
+    patcher: "gemini-3.1-pro"
+
+scan:
+  context_file: "CONTEXT.md"
+  target_paths:
+    - "backend/"
+    - "frontend/"
+    - "terraform/"
+    - "Dockerfile"
+    - "cloudbuild.yaml"
+  extensions:
+    - ".py"
+    - ".js"
+    - ".html"
+    - ".tf"
+    - ".yaml"
+  exclude_paths:
+    - ".venv/"
+    - "__pycache__/"
+    - ".pytest_cache/"
+    - "terraform/main_vulnerable.tf.example"
+
+sandbox:
+  isolated_execution: true
+  require_poc_verification: true
+  zero_false_positives_gate: true
+  test_command: "pytest tests/test_app_and_security.py -q"
+
+safety:
+  confirm_commands: true
+  confirm_writes: true
+  allow_env_secret_access: false
+
+reporting:
+  sarif_output: "artifacts/results.sarif"
+  html_output: "artifacts/codemender_report.html"
+  wiz_correlation_skill: ".agent/skills/code-to-cloud-triage/SKILL.md"
