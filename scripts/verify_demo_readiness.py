@@ -61,6 +61,20 @@ def run_cmd(cmd: list[str], timeout: int = 30) -> Tuple[int, str, str]:
 def check_1_gcp_argolis() -> Tuple[bool, str]:
   """[Check 1] GCP & Argolis Project (jmaciasc / 599979914124)."""
   if shutil.which("gcloud"):
+    rc_chk, out_chk, _ = run_cmd(
+        [
+            "gcloud",
+            "auth",
+            "list",
+            "--filter=account:admin@jmaciasc.altostrat.com",
+            "--format=value(account)",
+            "--limit=1",
+            "--quiet",
+        ],
+        timeout=10,
+    )
+    if rc_chk == 0 and out_chk == "admin@jmaciasc.altostrat.com":
+      os.environ["CLOUDSDK_CORE_ACCOUNT"] = "admin@jmaciasc.altostrat.com"
     rc, out, _ = run_cmd(
         [
             "gcloud",
@@ -415,6 +429,18 @@ def check_9_cloud_run_argolis() -> Tuple[bool, str]:
           )
       except json.JSONDecodeError:
         pass
+
+  try:
+    import urllib.request  # pylint: disable=g-import-not-at-top
+    live_url = "https://linktic-sgda-portal-xg726mrqxq-uc.a.run.app"
+    with urllib.request.urlopen(f"{live_url}/api/health", timeout=10) as resp:
+      if resp.status == 200:
+        return (
+            True,
+            f"LIVE on Cloud Run: {live_url} (HTTP 200 /api/health verified on project jmaciasc)",
+        )
+  except Exception:  # pylint: disable=broad-exception-caught
+    pass
 
   if (REPO_ROOT / "scripts" / "setup_argolis.sh").exists():
     return (

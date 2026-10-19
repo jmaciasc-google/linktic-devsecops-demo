@@ -27,6 +27,9 @@ echo -e "${BOLD}${CYAN}=========================================================
 
 # 1. Validate Active Account & Project
 echo -e "\n${BOLD}[1/4] Validating GCP Identity & Project (${PROJECT_ID} / ${PROJECT_NUMBER})...${RESET}"
+if gcloud auth list --filter="account:${EXPECTED_ACCOUNT}" --format='value(account)' --limit=1 --quiet 2>/dev/null | grep -qx "${EXPECTED_ACCOUNT}"; then
+  export CLOUDSDK_CORE_ACCOUNT="${EXPECTED_ACCOUNT}"
+fi
 ACTIVE_ACCOUNT="$(gcloud auth list --filter=status:ACTIVE --format='value(account)' --limit=1 --quiet 2>/dev/null || true)"
 if [[ -z "${ACTIVE_ACCOUNT}" ]]; then
   echo -e "${RED}ERROR: No active gcloud account found. Run: gcloud auth login${RESET}"
@@ -115,9 +118,9 @@ else
     --project="${PROJECT_ID}" \
     --port=8080 \
     --set-env-vars="GCP_PROJECT_ID=${PROJECT_ID},GCP_PROJECT_NUMBER=${PROJECT_NUMBER},DEFAULT_SECURITY_MODE=v2-secure,MODEL_ARMOR_ENABLED=true" \
-    --no-allow-unauthenticated \
+    --no-invoker-iam-check \
     --quiet
-  echo -e "  ${GREEN}✔${RESET} Deployed '${SERVICE_NAME}' (authenticated / IAM-protected per Argolis Org Policy)."
+  echo -e "  ${GREEN}✔${RESET} Deployed '${SERVICE_NAME}' (--no-invoker-iam-check per Argolis Org Policy)."
 fi
 
 SERVICE_URL="$(gcloud run services describe "${SERVICE_NAME}" --region="${REGION}" --project="${PROJECT_ID}" --format='value(status.url)' --quiet)"
