@@ -1,4 +1,4 @@
-.PHONY: help verify test run-local cm-scan wiz-scan deploy-argolis cloudbuild tutorial
+.PHONY: help verify test run-local pipeline-live cm-scan wiz-scan deploy-argolis cloudbuild tutorial
 
 PROJECT_ID ?= jmaciasc
 REGION ?= us-central1
@@ -9,6 +9,7 @@ help: ## Muestra los comandos disponibles para la Demo DevSecOps de Linktic
 	@echo "=========================================================================="
 	@echo " 🛡️  Linktic End-to-End Agentic DevSecOps Pipeline Demo — Comandos Make"
 	@echo "=========================================================================="
+	@echo "  make pipeline-live   Recorrido interactivo paso a paso (Etapas 1→6: Dev -> Wiz -> CodeMender -> Cloud Run)"
 	@echo "  make verify          Ejecuta el verificador Pre-Flight de 10 puntos"
 	@echo "  make test            Ejecuta la suite de pruebas Pytest (v1-vulnerable vs v2-secure)"
 	@echo "  make run-local       Inicia el servidor FastAPI localmente en el puerto $(PORT)"
@@ -18,6 +19,9 @@ help: ## Muestra los comandos disponibles para la Demo DevSecOps de Linktic
 	@echo "  make cloudbuild      Ejecuta el pipeline CI/CD de 6 etapas en Google Cloud Build"
 	@echo "  make tutorial        Abre el tutorial interactivo nativo en Google Cloud Shell"
 	@echo "=========================================================================="
+
+pipeline-live: ## Ejecuta el recorrido cronológico interactivo de 6 etapas en la terminal
+	bash scripts/walkthrough_pipeline_live.sh
 
 verify: ## Ejecuta el verificador automatizado de 10 puntos
 	python3 scripts/verify_demo_readiness.py

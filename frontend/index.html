@@ -48,9 +48,10 @@
   <!-- MAIN CONTENT -->
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-    <!-- 3 CLEAN TABS -->
+    <!-- 4 CLEAN TABS -->
     <nav class="flex flex-wrap gap-2 border-b border-slate-200 pb-3" role="tablist">
       <button id="tab-btn-1" onclick="switchTab(1)" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-900 text-white shadow-sm">📄 Portal &amp; Asistente IA</button>
+      <button id="tab-btn-4" onclick="switchTab(4)" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-white text-slate-600 hover:bg-slate-100 border border-slate-200">🚀 Pipeline Paso a Paso (1→6)</button>
       <button id="tab-btn-2" onclick="switchTab(2)" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-white text-slate-600 hover:bg-slate-100 border border-slate-200">🛡️ Laboratorio de Ataques &amp; CodeMender</button>
       <button id="tab-btn-3" onclick="switchTab(3)" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-white text-slate-600 hover:bg-slate-100 border border-slate-200">☁️ Wiz &amp; SecOps</button>
     </nav>
@@ -272,13 +273,142 @@
       </div>
     </section>
 
+    <!-- TAB 4: PIPELINE PASO A PASO (1->6) -->
+    <section id="tab-panel-4" class="hidden space-y-5">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <button id="step-btn-1" onclick="selectPipelineStep(1)" class="p-3 rounded-xl border text-left transition bg-slate-900 text-white border-slate-900 shadow-sm"><div class="mono text-[11px] opacity-75">ETAPA 1</div><div class="text-xs font-bold mt-0.5">1. Dev Push (v1)</div></button>
+        <button id="step-btn-2" onclick="selectPipelineStep(2)" class="p-3 rounded-xl border text-left transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100"><div class="mono text-[11px] opacity-75">ETAPA 2</div><div class="text-xs font-bold mt-0.5">2. Wiz Bloquea PR</div></button>
+        <button id="step-btn-3" onclick="selectPipelineStep(3)" class="p-3 rounded-xl border text-left transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100"><div class="mono text-[11px] opacity-75">ETAPA 3</div><div class="text-xs font-bold mt-0.5">3. CodeMender Repara</div></button>
+        <button id="step-btn-4" onclick="selectPipelineStep(4)" class="p-3 rounded-xl border text-left transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100"><div class="mono text-[11px] opacity-75">ETAPA 4</div><div class="text-xs font-bold mt-0.5">4. Cloud Build → Registry</div></button>
+        <button id="step-btn-5" onclick="selectPipelineStep(5)" class="p-3 rounded-xl border text-left transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100"><div class="mono text-[11px] opacity-75">ETAPA 5</div><div class="text-xs font-bold mt-0.5">5. Deploy Cloud Run</div></button>
+        <button id="step-btn-6" onclick="selectPipelineStep(6)" class="p-3 rounded-xl border text-left transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100"><div class="mono text-[11px] opacity-75">ETAPA 6</div><div class="text-xs font-bold mt-0.5">6. Monitoreo Wiz &amp; SecOps</div></button>
+      </div>
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4">
+          <div>
+            <span id="p-step-badge" class="mono text-xs font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800">ETAPA 1 DE 6</span>
+            <h2 id="p-step-title" class="text-lg font-bold text-slate-900 mt-1.5">1. El Desarrollador modifica la App (v1-vulnerable) y hace git push</h2>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] uppercase font-bold text-slate-400">¿Quién actúa?</div>
+            <div id="p-step-actor" class="text-xs font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200 mt-0.5">👨‍💻 Desarrollador (Rama v1-vulnerable)</div>
+          </div>
+        </div>
+        <ul id="p-step-bullets" class="space-y-1.5 text-sm text-slate-700 list-disc list-inside"></ul>
+        <pre id="p-step-terminal" class="rounded-xl bg-slate-900 text-slate-100 p-4 mono text-xs overflow-x-auto leading-relaxed"></pre>
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+          <div id="p-step-actions" class="flex flex-wrap gap-2.5"></div>
+          <button id="p-step-next" onclick="nextPipelineStep()" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition">Siguiente Etapa →</button>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <script>
     let currentMode = 'v2-secure';
+    let currentPipelineStep = 1;
+
+    const PIPELINE_STEPS = {
+      1: {
+        badge: 'ETAPA 1 DE 6 · CÓDIGO INSEGURO',
+        badgeClass: 'mono text-xs font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800',
+        title: '1. El Desarrollador modifica la App (v1-vulnerable) e intenta hacer git push',
+        actor: '👨‍💻 Desarrollador = Sube código Python + Terraform sin sanitizar',
+        bullets: [
+          'El dev introduce SQLi (CWE-89), Command Injection (CWE-78) y SSRF al Metadata Server (CWE-918) en backend/app.py.',
+          'Además incluye una GEMINI_API_KEY quemada y permisos roles/editor en terraform/main_vulnerable.tf.example.'
+        ],
+        terminal: `$ git checkout v1-vulnerable && git push origin feature/sgda-update\n# backend/app.py (v1-vulnerable):\ncursor.execute(f"SELECT * FROM radicados WHERE asunto LIKE '%{q}%'")\nsubprocess.run(f"wc -c /tmp/linktic_docs/{filename}", shell=True)\n# terraform/main_vulnerable.tf.example:\nenv { name = "GEMINI_API_KEY" value = "AIzaSyD-VULNERABLE-HARDCODED-KEY" }`,
+        actionHtml: `<button onclick="setSecurityMode('v1-vulnerable'); switchTab(2);" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition">🔴 Activar v1-vulnerable e ir al Laboratorio</button>`
+      },
+      2: {
+        badge: 'ETAPA 2 DE 6 · GATEKEEPER CI/CD',
+        badgeClass: 'mono text-xs font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-900',
+        title: '2. Wiz (wizcli) analiza el PR/Push, calcula el Blast Radius y BLOQUEA el Pipeline',
+        actor: '🛡️ Wiz = Detecta secretos/IaC/Blast Radius y BLOQUEA el PR (No escribe el código)',
+        bullets: [
+          'wizcli dir scan y wizcli iac scan detectan la llave GEMINI_API_KEY expuesta, el contenedor root y roles/editor.',
+          'Wiz Security Graph correlaciona el SSRF con el servicio Cloud Run público y BLOQUEA el Pull Request (Exit Code 1).'
+        ],
+        terminal: `$ wizcli iac scan --path terraform/ && wizcli dir scan --path .\n✘ [CRITICAL] WIZ-IAC-001 : Hardcoded GEMINI_API_KEY in Cloud Run env\n✘ [HIGH]     WIZ-IAC-002 : Default Compute SA granted roles/editor\n✘ [CRITICAL] WIZ-GRAPH   : Public Cloud Run + SSRF to 169.254.169.254 (Token Theft)\n══════════════════════════════════════════════════════════════════════\n❌ PR / CLOUD BUILD BLOCKED BY WIZ POLICY — Passing to CodeMender`,
+        actionHtml: `<a href="https://goto2.corp.google.com/wiz-adatest" target="_blank" rel="noopener" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition">☁️ Abrir Wiz Security Graph (go/wiz-adatest)</a>`
+      },
+      3: {
+        badge: 'ETAPA 3 DE 6 · REMEDIACIÓN AUTÓNOMA',
+        badgeClass: 'mono text-xs font-bold px-2.5 py-1 rounded-md bg-sky-100 text-sky-800',
+        title: '3. Antigravity + CodeMender verifican en Sandbox y ESCRIBEN EL PARCHE',
+        actor: '🤖 Antigravity + CodeMender = Validan exploit (0% FP) y escriben el fix',
+        bullets: [
+          'El skill code-to-cloud-triage toma el bloqueo de Wiz; CodeMender (cm verify) ejecuta los 3 exploits en sandbox aislado.',
+          'CodeMender (cm fix) + Antigravity reescriben backend/app.py, Dockerfile (UID 10001) y terraform/main.tf (100% ADC).'
+        ],
+        terminal: `$ cm verify && cm fix\n✔ [Sandbox PoC] CM-SQLI-001, CM-CMDI-002, CM-SSRF-003 -> VERIFIED_EXPLOITABLE (0% FP)\n- cursor.execute(f"SELECT * FROM radicados WHERE asunto LIKE '%{q}%'")\n+ cursor.execute("SELECT * FROM radicados WHERE asunto LIKE ? AND confidencial = 0", (f"%{q}%",))\n✔ [pytest] 8 passed in 0.48s — 100% exploits blocked in v2-secure`,
+        actionHtml: `<a href="/artifacts/codemender_report.html" target="_blank" rel="noopener" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-semibold transition">📄 Ver Reporte y Diffs de CodeMender</a>`
+      },
+      4: {
+        badge: 'ETAPA 4 DE 6 · BUILD & REGISTRY',
+        badgeClass: 'mono text-xs font-bold px-2.5 py-1 rounded-md bg-indigo-100 text-indigo-800',
+        title: '4. Cloud Build ejecuta el Gate de 6 Etapas y publica en Artifact Registry',
+        actor: '🏗️ Cloud Build + Artifact Registry = Empaquetan imagen endurecida sin root',
+        bullets: [
+          'Con el parche aplicado, cloudbuild.yaml pasa pytest, wizcli iac/docker scan y el gate SARIF de CodeMender.',
+          'Publica la imagen inmutable en Artifact Registry (us-central1-docker.pkg.dev/jmaciasc/linktic-devsecops/linktic-sgda-portal).'
+        ],
+        terminal: `$ gcloud builds submit --config=cloudbuild.yaml --project=jmaciasc .\n✔ Step 1: unit-tests (pytest 8/8 PASS)\n✔ Step 2: wizcli-iac-and-dir-scan (0 Critical, 0 Leaked Keys)\n✔ Step 3: codemender-sarif-gate (3/3 FIXED_AND_VERIFIED)\n✔ Step 4-5: docker build & wizcli-container-scan (UID 10001 PASS)\n✔ Pushed: us-central1-docker.pkg.dev/jmaciasc/linktic-devsecops/linktic-sgda-portal:latest`,
+        actionHtml: `<a href="https://console.cloud.google.com/cloud-build/builds?project=jmaciasc" target="_blank" rel="noopener" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition">🔨 Ver Cloud Build (GCP)</a><a href="https://console.cloud.google.com/artifacts/docker/jmaciasc/us-central1/linktic-devsecops?project=jmaciasc" target="_blank" rel="noopener" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition">📦 Ver Artifact Registry</a>`
+      },
+      5: {
+        badge: 'ETAPA 5 DE 6 · PRODUCCIÓN SEGURA',
+        badgeClass: 'mono text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800',
+        title: '5. Despliegue a Cloud Run (v2-secure) con Vertex AI ADC + Model Armor (<30ms)',
+        actor: '🚀 Cloud Run + Model Armor + DLP = Prevención en línea en producción',
+        bullets: [
+          'El servicio corre en Cloud Run usando Application Default Credentials (0% API keys) con el SA linktic-sgda-runner.',
+          'Model Armor + Cloud DLP inspeccionan cada prompt en <30ms, bloqueando Prompt Injection y enmascarando Cédulas/Tarjetas.'
+        ],
+        terminal: `✔ Service URL : https://linktic-sgda-portal-xg726mrqxq-uc.a.run.app\n✔ Auth Mode   : Vertex AI ADC (linktic-sgda-runner@jmaciasc.iam.gserviceaccount.com)\n✔ SQLi / CmdInj / SSRF PoCs -> HTTP 403 BLOCKED\n✔ Model Armor + Cloud DLP   -> <30ms Inline Protection Active`,
+        actionHtml: `<button onclick="setSecurityMode('v2-secure'); switchTab(1);" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition">🟢 Activar v2-secure y Probar Asistente IA</button><a href="https://console.cloud.google.com/run/detail/us-central1/linktic-sgda-portal/metrics?project=jmaciasc" target="_blank" rel="noopener" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition">☁️ Ver Cloud Run en GCP</a>`
+      },
+      6: {
+        badge: 'ETAPA 6 DE 6 · DÍA 2 / SOC & CSPM',
+        badgeClass: 'mono text-xs font-bold px-2.5 py-1 rounded-md bg-purple-100 text-purple-800',
+        title: '6. Monitoreo Continuo: Wiz Security Graph + Cloud Trace + Google SecOps + GTI MCP',
+        actor: '🔭 Wiz (Postura Cloud) + Google SecOps & Mandiant GTI (SOC Runtime)',
+        bullets: [
+          'Wiz monitorea continuamente la infraestructura GCP y verifica que las rutas de ataque en Cloud Run sigan mitigadas.',
+          'Cada intento de ataque bloqueado envía su traceId, principalEmail y callerIp a Cloud Trace y Google SecOps SIEM/SOAR.'
+        ],
+        terminal: `[Wiz Security Graph] Status: 🟢 ALL ATTACK PATHS MITIGATED IN v2-SECURE\n[Cloud Trace / SecOps UDM] traceId=9f8e7d6c5b4a... | rule=LINKTIC_WEB_AND_AI_RUNTIME_DEFENSE_V2\n[Mandiant GTI MCP] Actor context: UNC-ColGov-Scraper | SOAR Playbook: Auto-Block IP`,
+        actionHtml: `<button onclick="switchTab(3); loadTelemetryLogs();" class="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold transition">🔭 Ver Grafo Wiz &amp; Eventos SecOps en Vivo</button><a href="https://console.cloud.google.com/traces/list?project=jmaciasc" target="_blank" rel="noopener" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-semibold transition">🔍 Abrir Cloud Trace</a>`
+      }
+    };
+
+    function selectPipelineStep(step) {
+      currentPipelineStep = step;
+      [1, 2, 3, 4, 5, 6].forEach(n => {
+        const btn = document.getElementById(`step-btn-${n}`);
+        if (!btn) return;
+        btn.className = n === step
+          ? 'p-3 rounded-xl border text-left transition bg-slate-900 text-white border-slate-900 shadow-sm'
+          : 'p-3 rounded-xl border text-left transition bg-white text-slate-700 border-slate-200 hover:bg-slate-100';
+      });
+      const cfg = PIPELINE_STEPS[step];
+      document.getElementById('p-step-badge').className = cfg.badgeClass;
+      document.getElementById('p-step-badge').textContent = cfg.badge;
+      document.getElementById('p-step-title').textContent = cfg.title;
+      document.getElementById('p-step-actor').textContent = cfg.actor;
+      document.getElementById('p-step-bullets').innerHTML = cfg.bullets.map(b => `<li>${b}</li>`).join('');
+      document.getElementById('p-step-terminal').textContent = cfg.terminal;
+      document.getElementById('p-step-actions').innerHTML = cfg.actionHtml;
+    }
+
+    function nextPipelineStep() {
+      selectPipelineStep(currentPipelineStep >= 6 ? 1 : currentPipelineStep + 1);
+    }
 
     function switchTab(tabNum) {
-      [1, 2, 3].forEach(n => {
+      [1, 2, 3, 4].forEach(n => {
         const btn = document.getElementById(`tab-btn-${n}`);
         const panel = document.getElementById(`tab-panel-${n}`);
         btn.className = n === tabNum
@@ -534,6 +664,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) window.lucide.createIcons();
+      selectPipelineStep(1);
       fetchMode();
       loadPublicRadicados();
       loadTelemetryLogs();

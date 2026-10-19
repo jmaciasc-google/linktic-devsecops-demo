@@ -45,10 +45,33 @@ Confirma que el scorecard final imprima:
 - `make verify` comprueba en el **`[Check 4]`** el binario `cm`, el archivo `.codemender/config.yaml`, el reporte `artifacts/results.sarif` y el reporte ejecutivo `artifacts/codemender_report.html`.
 - Si el allowlist de Vertex AI para `Gemini 3.8 Flash Cyber` está activo en la cuenta actual, `scripts/demo_cli_runner.sh` invoca `cm` en vivo; si está en modo offline/contingencia, presenta la traza exacta de sandbox y actualiza los artefactos en tiempo real sin interrupción.
 
-### 4. Tener Abiertas tus 3 Pestañas de Presentación
-1. **Pestaña 1 (Portal Web en Vivo en Cloud Run):** La URL `.run.app` de `linktic-sgda-portal` en el proyecto `jmaciasc` (o `http://localhost:8080`).
-2. **Pestaña 2 (Google Cloud Shell Editor con Tutorial + Notebook):** Haz clic en el botón **Open in Cloud Shell** del `README.md` o ejecuta `cloudshell launch-tutorial tutorial.md` y abre `Linktic_DevSecOps_Live_Demo.ipynb`.
-3. **Pestaña 3 (Reporte Ejecutivo CodeMender HTML):** `<SERVICE_URL>/artifacts/codemender_report.html`.
+### 4. Tener Abiertas tus 3 Pestañas de Presentación + Comando `make pipeline-live`
+1. **Pestaña 1 (Portal Web en Vivo en Cloud Run / Local `:8080`):**
+   - Cloud Run: `https://linktic-sgda-portal-xg726mrqxq-uc.a.run.app`
+   - Preview Local: `http://jmaciasc.c.googlers.com:8080`
+   - Incluye la nueva pestaña interactiva **`🚀 Pipeline Paso a Paso (1→6)`** para recorrer visualmente las 6 etapas frente al cliente.
+2. **Pestaña 2 (Terminal Interactiva Paso a Paso):** Ejecuta `make pipeline-live` (`bash scripts/walkthrough_pipeline_live.sh`) para guiar la historia cronológica completa presionando `[ENTER]` en cada etapa.
+3. **Pestaña 3 (Reporte Ejecutivo CodeMender HTML + Consola GCP `jmaciasc`):**
+   - Reporte CodeMender: `https://linktic-sgda-portal-xg726mrqxq-uc.a.run.app/artifacts/codemender_report.html`
+   - Cloud Build: `https://console.cloud.google.com/cloud-build/builds?project=jmaciasc`
+   - Artifact Registry: `https://console.cloud.google.com/artifacts/docker/jmaciasc/us-central1/linktic-devsecops?project=jmaciasc`
+   - Cloud Run: `https://console.cloud.google.com/run/detail/us-central1/linktic-sgda-portal/metrics?project=jmaciasc`
+   - Wiz Security Graph: `https://goto2.corp.google.com/wiz-adatest` (`go/wiz-adatest`)
+
+---
+
+## 🔄 El Flujo Cronológico de 6 Etapas (La Historia Central de principio a fin)
+
+Para que la audiencia entienda exactamente **quién hace qué** desde que el desarrollador escribe código hasta la operación en producción, usa la pestaña **`🚀 Pipeline Paso a Paso (1→6)`** en la UI o corre `make pipeline-live`:
+
+| Etapa | Nombre | ¿Quién actúa? | ¿Qué ocurre exactamente? |
+| :--- | :--- | :--- | :--- |
+| **Etapa 1** | **Dev Push (`v1-vulnerable`)** | 👨‍💻 **Desarrollador** | Toma la app en `v1-vulnerable`, introduce SQLi/CmdInj/SSRF en `backend/app.py` y una `GEMINI_API_KEY` quemada + `roles/editor` en Terraform, e intenta hacer `git push` / abrir un PR. |
+| **Etapa 2** | **Wiz Bloquea el PR** | 🛡️ **Wiz (`wizcli` + Security Graph)** | **Wiz NO reescribe el código:** Wiz actúa como el **Detector, Priorizador de Blast Radius y Gatekeeper CI/CD** que detecta la llave expuesta, el contenedor `root` y la Combinación Tóxica (Cloud Run público + SSRF a `169.254.169.254`) y **BLOQUEA el PR/Build (`Exit Code 1`)**. |
+| **Etapa 3** | **CodeMender + Antigravity Reparan** | 🤖 **Antigravity (`code-to-cloud-triage`) + CodeMender (`cm`)** | Antigravity toma el hallazgo priorizado por Wiz; **CodeMender** levanta un sandbox aislado (`cm verify`), valida los 3 exploits con **0% falsos positivos** y **escribe automáticamente el parche (`cm fix`)** en Python, `Dockerfile` (`UID 10001`) y `terraform/main.tf` (100% ADC sin API keys). |
+| **Etapa 4** | **Cloud Build → Artifact Registry** | 🏗️ **Google Cloud Build + Artifact Registry** | Con el fix aplicado, `cloudbuild.yaml` pasa `pytest`, pasa el gate de `wizcli` y `SARIF`, construye la imagen endurecida y la publica en **Artifact Registry** (`us-central1-docker.pkg.dev/jmaciasc/linktic-devsecops/linktic-sgda-portal:latest`). |
+| **Etapa 5** | **Deploy a Cloud Run (`v2-secure`)** | 🚀 **Cloud Run + Vertex AI ADC + Model Armor (`<30ms`)** | Despliega la nueva revisión en Cloud Run autenticada vía **ADC (0% API Keys)**. Los 3 exploits quedan bloqueados (`HTTP 403`) y **Model Armor + Cloud DLP** filtran Prompt Injection y Cédulas/Tarjetas en `<30ms`. |
+| **Etapa 6** | **Monitoreo Continuo (Día 2)** | 🔭 **Wiz CSPM + Cloud Trace + Google SecOps + GTI MCP** | **Wiz (`go/wiz-adatest`)** monitorea continuamente que la postura de infraestructura en GCP siga limpia, mientras **Cloud Trace + Google SecOps + Mandiant GTI MCP** correlacionan cualquier ataque bloqueado en tiempo real. |
 
 ---
 
